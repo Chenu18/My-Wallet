@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<meta name="description" content="A simple offline cash balance tracker for Sri Lankan rupees.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<title>CashBook LKR</title>
+<style>
+:root{--bg:#f3f5f8;--panel:#fff;--ink:#182230;--muted:#718096;--line:#e7ebf0;--accent:#2457e6;--green:#16845b;--red:#c44444;--nav:#101827}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:var(--nav);color:white;padding:20px max(18px,calc((100% - 920px)/2)) 18px}
+.headrow{display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:800;font-size:20px;letter-spacing:.2px}.sub{font-size:12px;color:#b9c4d4}
+main{max-width:920px;margin:0 auto;padding:16px 14px 92px}.tabs{display:flex;gap:7px;overflow:auto;padding:12px 0 16px}
+.tab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 14px;font-weight:650;color:#526071;white-space:nowrap}
+.tab.active{background:var(--accent);border-color:var(--accent);color:white}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:16px;margin-bottom:13px;box-shadow:0 3px 12px #17243a08}
+.label{font-size:12px;color:var(--muted);font-weight:650;text-transform:uppercase;letter-spacing:.07em}
+.total{font-size:34px;font-weight:850;letter-spacing:-1px;margin:4px 0}.muted{color:var(--muted)}.small{font-size:12px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.stat{background:#f7f9fc;border-radius:12px;padding:12px}.stat strong{display:block;font-size:19px;margin-top:3px}
+h2{font-size:18px;margin:3px 0 12px}h3{font-size:15px;margin:0 0 10px}
+button,input,select{font:inherit}button{cursor:pointer}.primary,.secondary,.danger{border:0;border-radius:11px;padding:11px 14px;font-weight:700}.primary{background:var(--accent);color:#fff}.secondary{background:#edf1f7;color:#263448}.danger{background:#fff0f0;color:var(--red)}
+input,select{width:100%;border:1px solid #dce2ea;border-radius:10px;padding:11px;background:#fff;color:var(--ink);min-width:0}
+.field{margin:10px 0}.field label{display:block;font-size:13px;font-weight:650;margin-bottom:5px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.denoms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.denom{border:1px solid var(--line);border-radius:12px;padding:10px}.denomtop{display:flex;justify-content:space-between;font-weight:750;margin-bottom:7px}.denom input{text-align:center;padding:8px}
+.item{padding:12px 0;border-bottom:1px solid var(--line)}.item:last-child{border:0}.amount{font-weight:800}.positive{color:var(--green)}.negative{color:var(--red)}
+.hidden{display:none!important}.empty{text-align:center;padding:28px 10px;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1}
+.bottomnote{font-size:12px;color:var(--muted);text-align:center;padding:12px}
+@media(min-width:650px){.denoms{grid-template-columns:repeat(3,minmax(0,1fr))}.stats{grid-template-columns:repeat(4,1fr)}main{padding-top:22px}}
+</style>
+</head>
+<body>
+<header><div class="headrow"><div><div class="brand">CashBook <span style="color:#91adff">LKR</span></div><div class="sub">Your cash, clearly counted.</div></div><button id="installBtn" class="secondary hidden">Install app</button></div></header>
+<main>
+<nav class="tabs" aria-label="Main navigation">
+<button class="tab active" data-page="home">Overview</button><button class="tab" data-page="cash">Count cash</button><button class="tab" data-page="activity">Transactions</button><button class="tab" data-page="history">Daily history</button><button class="tab" data-page="settings">Backup</button>
+</nav>
+<section id="home" class="page">
+<div class="card"><div class="label">Cash in hand</div><div class="total" id="grandTotal">Rs. 0.00</div><div class="muted small" id="cashCount">0 notes and coins</div><div class="actions" style="margin-top:15px"><button class="primary" onclick="showPage('cash')">Update cash count</button><button class="secondary" onclick="showPage('activity')">Add transaction</button></div></div>
+<div class="stats"><div class="stat"><span class="label">Money received</span><strong class="positive" id="incomeTotal">Rs. 0</strong></div><div class="stat"><span class="label">Money spent</span><strong class="negative" id="expenseTotal">Rs. 0</strong></div><div class="stat"><span class="label">Transactions</span><strong id="transactionCount">0</strong></div><div class="stat"><span class="label">Last counted</span><strong id="lastCounted" style="font-size:14px">Not yet</strong></div></div>
+<div class="card"><div class="row"><h2>Recent activity</h2><button class="secondary" onclick="showPage('activity')">View all</button></div><div id="recentList"></div></div>
+</section>
+<section id="cash" class="page hidden">
+<div class="card"><div class="row"><div><h2>Count your cash</h2><div class="muted small">Enter the number of each note and coin you physically have.</div></div><strong id="countTotal">Rs. 0</strong></div><div id="denoms" class="denoms" style="margin-top:14px"></div><div class="row" style="margin-top:15px"><span class="muted">Total pieces: <b id="pieceCount">0</b></span><button class="primary" id="saveCount">Save today's count</button></div></div>
+</section>
+<section id="activity" class="page hidden">
+<div class="card"><h2>Add a transaction</h2><div class="grid2"><div class="field"><label>Type</label><select id="txType"><option value="in">Money received</option><option value="out">Money spent</option></select></div><div class="field"><label>Amount (LKR)</label><input id="txAmount" type="number" min="0.01" step="0.01" placeholder="e.g. 500"></div></div><div class="field"><label>Description</label><input id="txNote" maxlength="80" placeholder="e.g. Lunch, allowance, bus fare"></div><div class="field"><label>Date</label><input id="txDate" type="date"></div><button class="primary" id="addTx">Save transaction</button><p class="small muted">Transactions are a record. Update your physical cash count separately to keep the note/coin breakdown accurate.</p></div>
+<div class="card"><div class="row"><h2>All transactions</h2><select id="txFilter" style="width:auto"><option value="all">All</option><option value="in">Received</option><option value="out">Spent</option></select></div><div id="txList"></div></div>
+</section>
+<section id="history" class="page hidden"><div class="card"><h2>Daily cash history</h2><p class="small muted">Each saved count is stored with its date. Save again on the same date to update that day's total.</p><div id="historyList"></div></div></section>
+<section id="settings" class="page hidden">
+<div class="card"><h2>Backup and restore</h2><p class="muted small">Your records stay in this browser on this device. Export a backup regularly, especially before changing phones or clearing browser data.</p><div class="actions"><button class="primary" id="exportBtn">Export backup</button><label class="secondary" style="display:inline-flex;align-items:center;justify-content:center;border-radius:11px;padding:11px 14px;font-weight:700;flex:1;cursor:pointer">Import backup<input id="importFile" type="file" accept="application/json" hidden></label></div></div>
+<div class="card"><h2>Data and privacy</h2><p class="small muted">CashBook LKR works offline after it has been installed once. No account or cloud sync is included. Anyone using this browser profile may be able to open the app.</p><button class="danger" id="resetBtn">Delete all app data</button></div>
+</section>
+<div class="bottomnote">CashBook LKR · Offline-first · Sri Lankan Rupees</div>
+</main>
+<script>
+const denominations=[{name:"Rs. 5,000 note",v:5000,k:"n5000"},{name:"Rs. 2,000 note",v:2000,k:"n2000"},{name:"Rs. 1,000 note",v:1000,k:"n1000"},{name:"Rs. 500 note",v:500,k:"n500"},{name:"Rs. 100 note",v:100,k:"n100"},{name:"Rs. 50 note",v:50,k:"n50"},{name:"Rs. 20 note",v:20,k:"n20"},{name:"Rs. 10 note",v:10,k:"n10"},{name:"Rs. 10 coin",v:10,k:"c10"},{name:"Rs. 5 coin",v:5,k:"c5"},{name:"Rs. 2 coin",v:2,k:"c2"},{name:"Rs. 1 coin",v:1,k:"c1"}];
+const KEY="cashbook_lkr_v2";let state=load();
+function blank(){return {counts:{},transactions:[],history:[]}}
+function load(){try{return {...blank(),...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch(e){return blank()}}
+function persist(){localStorage.setItem(KEY,JSON.stringify(state));render()}
+function money(n){return "Rs. "+Number(n||0).toLocaleString("en-LK",{minimumFractionDigits:2,maximumFractionDigits:2})}
+function total(){return denominations.reduce((s,d)=>s+d.v*(Number(state.counts[d.k])||0),0)}
+function pieces(){return denominations.reduce((s,d)=>s+(Number(state.counts[d.k])||0),0)}
+function today(){let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function niceDate(s){if(!s)return "";return new Date(s+"T00:00:00").toLocaleDateString("en-LK",{day:"numeric",month:"short",year:"numeric"})}
+function showPage(id){document.querySelectorAll(".page").forEach(x=>x.classList.toggle("hidden",x.id!==id));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===id));if(id==="activity")renderTransactions();if(id==="history")renderHistory();window.scrollTo(0,0)}
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));
+function buildDenoms(){document.getElementById("denoms").innerHTML=denominations.map(d=>`<div class="denom"><div class="denomtop"><span>${d.name}</span><span>${money(d.v)}</span></div><input type="number" min="0" step="1" inputmode="numeric" aria-label="${d.name} quantity" data-key="${d.k}" value="${Number(state.counts[d.k])||0}"></div>`).join("");document.querySelectorAll("[data-key]").forEach(i=>i.addEventListener("input",()=>{state.counts[i.dataset.key]=Math.max(0,Math.floor(Number(i.value)||0));updateCashTotal()}))}
+function updateCashTotal(){document.getElementById("countTotal").textContent=money(total());document.getElementById("pieceCount").textContent=pieces()}
+document.getElementById("saveCount").onclick=()=>{let t=today();let rec={date:t,total:total(),pieces:pieces(),counts:{...state.counts}};let idx=state.history.findIndex(x=>x.date===t);if(idx>=0)state.history[idx]=rec;else state.history.push(rec);state.history.sort((a,b)=>b.date.localeCompare(a.date));persist();alert("Today's cash count saved.")};
+document.getElementById("txDate").value=today();
+document.getElementById("addTx").onclick=()=>{let amount=Number(document.getElementById("txAmount").value),note=document.getElementById("txNote").value.trim(),date=document.getElementById("txDate").value,type=document.getElementById("txType").value;if(!(amount>0)||!date){alert("Enter a valid amount and date.");return}state.transactions.unshift({id:Date.now(),amount,note:note|| (type==="in"?"Money received":"Money spent"),date,type});document.getElementById("txAmount").value="";document.getElementById("txNote").value="";persist();renderTransactions();alert("Transaction saved.")};
+document.getElementById("txFilter").onchange=renderTransactions;
+function txHTML(t){return `<div class="item row"><div><b>${escapeHTML(t.note)}</b><div class="small muted">${niceDate(t.date)} · ${t.type==="in"?"Received":"Spent"}</div></div><div class="row"><span class="amount ${t.type==="in"?"positive":"negative"}">${t.type==="in"?"+":"−"}${money(t.amount)}</span><button class="danger" style="padding:6px 9px;margin-left:8px" data-del="${t.id}" aria-label="Delete transaction">×</button></div></div>`}
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function renderTransactions(){let f=document.getElementById("txFilter").value,arr=state.transactions.filter(t=>f==="all"||t.type===f);document.getElementById("txList").innerHTML=arr.length?arr.map(txHTML).join(""):'<div class="empty">No transactions recorded yet.</div>';document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this transaction?")){state.transactions=state.transactions.filter(t=>String(t.id)!==b.dataset.del);persist();renderTransactions()}})}
+function renderHistory(){let a=state.history.slice().sort((x,y)=>y.date.localeCompare(x.date));document.getElementById("historyList").innerHTML=a.length?a.map(h=>`<div class="item row"><div><b>${niceDate(h.date)}</b><div class="small muted">${h.pieces} notes and coins counted</div></div><strong>${money(h.total)}</strong></div>`).join(""):'<div class="empty">No daily counts saved yet. Go to Count cash to save your first one.</div>'}
+function render(){let inc=state.transactions.filter(t=>t.type==="in").reduce((s,t)=>s+t.amount,0),out=state.transactions.filter(t=>t.type==="out").reduce((s,t)=>s+t.amount,0);document.getElementById("grandTotal").textContent=money(total());document.getElementById("cashCount").textContent=pieces()+" notes and coins";document.getElementById("incomeTotal").textContent=money(inc);document.getElementById("expenseTotal").textContent=money(out);document.getElementById("transactionCount").textContent=state.transactions.length;document.getElementById("lastCounted").textContent=state.history.length?niceDate(state.history.slice().sort((a,b)=>b.date.localeCompare(a.date))[0].date):"Not yet";document.getElementById("recentList").innerHTML=state.transactions.length?state.transactions.slice(0,4).map(txHTML).join(""):'<div class="empty">Your transactions will appear here.</div>';document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this transaction?")){state.transactions=state.transactions.filter(t=>String(t.id)!==b.dataset.del);persist()}});updateCashTotal()}
+document.getElementById("exportBtn").onclick=()=>{let blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="cashbook-lkr-backup-"+today()+".json";a.click();URL.revokeObjectURL(a.href)};
+document.getElementById("importFile").onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let x=JSON.parse(await f.text());if(!x||typeof x!=="object"||!x.counts||!Array.isArray(x.transactions)||!Array.isArray(x.history))throw Error();if(confirm("Replace the current app data with this backup?")){state=x;persist();buildDenoms();alert("Backup restored.")}}catch(err){alert("That backup file is not valid.")}e.target.value=""};
+document.getElementById("resetBtn").onclick=()=>{if(confirm("Permanently delete all CashBook LKR data from this browser? Export a backup first if needed.")&&confirm("Are you completely sure?")){state=blank();persist();buildDenoms();renderTransactions();renderHistory()}};
+let deferredPrompt;window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;document.getElementById("installBtn").classList.remove("hidden")});document.getElementById("installBtn").onclick=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;document.getElementById("installBtn").classList.add("hidden")};
+if("serviceWorker" in navigator && location.protocol!=="file:"){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}
+buildDenoms();render();
+</script>
+</body></html>
